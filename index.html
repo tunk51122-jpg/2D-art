@@ -14,7 +14,10 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDKs (App, Auth, Firestore) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
@@ -261,28 +264,6 @@
       font-size: 0.95rem;
     }
 
-    /* PWA Install Banner Style */
-    #pwaInstallBanner {
-      display: none;
-      position: fixed;
-      bottom: 16px;
-      left: 16px;
-      right: 16px;
-      max-width: 460px;
-      margin: 0 auto;
-      background: var(--surface);
-      border: 1px solid var(--primary);
-      border-radius: 12px;
-      padding: 14px 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      z-index: 10000;
-      animation: slideUp 0.3s ease;
-    }
-    @keyframes slideUp {
-      from { transform: translateY(100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
     .toast {
       position: fixed;
       bottom: 24px;
@@ -304,39 +285,25 @@
 </head>
 <body>
 
-  <!-- PWA INSTALL SHORTCUT BANNER -->
-  <div id="pwaInstallBanner">
-    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-      <div>
-        <strong style="color: var(--primary); font-size: 0.95rem; display: block;">📲 ဖုန်း Screen ပေါ်သို့ Shortcut တင်မည်</strong>
-        <span style="font-size: 0.78rem; color: var(--text-muted);">App ကဲ့သို့ ဖုန်းတွင် အမြဲထားရှိ အသုံးပြုနိုင်ပါသည်</span>
-      </div>
-      <div style="display: flex; gap: 6px;">
-        <button type="button" class="btn" style="padding: 6px 14px; font-size: 0.85rem;" onclick="triggerPwaInstall()">Install</button>
-        <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="dismissPwaBanner()">✕</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 1. LOGIN SCREEN -->
+  <!-- 1. LOGIN SCREEN: GMAIL & PASSWORD AUTHENTICATION -->
   <div id="loginScreen" style="max-width: 440px; margin: 60px auto; padding: 0 16px;">
     <div class="card" style="text-align: center;">
       <h2 style="color: var(--primary); margin-bottom: 8px;">🔐 ဒိုင်ခွဲ အကောင့်ဝင်ရောက်ရန်</h2>
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
-        Admin မှ သတ်မှတ်ပေးထားသော ဒိုင်ခွဲအမည်နှင့် PIN နံပါတ် ရိုက်ထည့်ပါ
+        Admin မှ သတ်မှတ်ပေးထားသော ဒိုင်ခွဲ Gmail နှင့် Password ရိုက်ထည့်ပါ
       </p>
 
-      <div style="margin-bottom: 16px; text-align: left;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">ဒိုင်ခွဲ အမည် (Agent Name):</label>
-        <input type="text" id="loginAgentName" placeholder="Admin သတ်မှတ်ပေးထားသည့် အမည် ရိုက်ပါ">
+      <div style="margin-bottom: 14px; text-align: left;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">ဒိုင်ခွဲ Gmail / Email:</label>
+        <input type="email" id="loginAgentEmail" placeholder="ဥပမာ- aung@gmail.com">
       </div>
 
       <div style="margin-bottom: 20px; text-align: left;">
-        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">လုံခြုံရေး PIN နံပါတ်:</label>
-        <input type="password" id="loginPinInput" placeholder="PIN နံပါတ် ရိုက်ပါ (ဥပမာ- 1111)" style="text-align: center; letter-spacing: 4px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">စကားဝှက် (Password):</label>
+        <input type="password" id="loginAgentPassword" placeholder="Password ရိုက်ထည့်ပါ">
       </div>
 
-      <button type="button" class="btn" style="width: 100%; padding: 13px;" onclick="handleAgentLogin()">အကောင့်ဝင်ရောက်မည် (Login)</button>
+      <button type="button" class="btn" id="btnLoginAgent" style="width: 100%; padding: 13px;" onclick="handleAgentEmailLogin()">အကောင့်ဝင်ရောက်မည် (Login)</button>
     </div>
   </div>
 
@@ -349,12 +316,15 @@
           <span class="badge">Live</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <!-- History Button on Header Bar (Shortcut button removed) -->
+          <!-- History Button on Header Bar -->
           <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem; color: var(--info); border-color: var(--info);" onclick="openHistoryModal()">
             📑 မှတ်တမ်း (<span id="headerHistoryCount">0</span>)
           </button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.82rem;" onclick="openAgentPasswordChangeModal()">
+            🔑 PW ပြောင်း
+          </button>
           <span style="font-size: 0.95rem; font-weight: 700; color: var(--primary);" id="bannerAgentName">Agent</span>
-          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem;" onclick="handleLogout()">ထွက်မည်</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem;" onclick="handleAgentLogout()">ထွက်မည်</button>
         </div>
       </div>
     </header>
@@ -512,7 +482,7 @@
     </div>
   </div>
 
-  <!-- 4. HISTORY POP-UP MODAL (သီးသန့် Pop-up ဖြင့် ကြည့်ရှုသည့် စနစ်) -->
+  <!-- 4. HISTORY POP-UP MODAL -->
   <div id="historyMainModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 2500; padding: 14px;">
     <div class="card" style="width: 100%; max-width: 800px; margin: 0; max-height: 85vh; display: flex; flex-direction: column;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -543,7 +513,7 @@
     </div>
   </div>
 
-  <!-- 5. TICKET DETAILS MODAL (ဘောက်ချာတစ်ခုချင်းစီ၏ အကွက်စာရင်း) -->
+  <!-- 5. TICKET DETAILS MODAL -->
   <div id="historyDetailsModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 3000; padding: 16px;" onclick="closeHistoryDetailsModal()">
     <div class="card" style="width: 100%; max-width: 500px; margin: 0; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -564,6 +534,25 @@
     </div>
   </div>
 
+  <!-- 6. AGENT SELF PASSWORD CHANGE MODAL -->
+  <div id="agentPasswordModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 3000;">
+    <div class="card" style="width: 90%; max-width: 380px; margin: 0;">
+      <h3 style="margin-bottom: 12px; font-size: 1.1rem; color: var(--primary);">🔑 စကားဝှက် အသစ်ပြောင်းမည်</h3>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Password အသစ် (အနည်းဆုံး ၆ လုံး):</label>
+        <input type="password" id="newAgentPassInput" placeholder="Password အသစ် ရိုက်ပါ">
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Password အသစ်ကို ထပ်မံရိုက်ပါ:</label>
+        <input type="password" id="confirmAgentPassInput" placeholder="Password အသစ် အတည်ပြုပါ">
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeAgentPasswordChangeModal()">ပိတ်မည်</button>
+        <button class="btn" onclick="saveAgentPersonalPassword()">သိမ်းဆည်းမည်</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script>
@@ -577,108 +566,178 @@
       measurementId: "G-THL38LG590"
     };
 
+    let auth = null;
     let db = null;
     try {
       if (typeof firebase !== 'undefined') {
         if (!firebase.apps.length) {
           firebase.initializeApp(firebaseConfig);
         }
+        auth = firebase.auth();
         db = firebase.firestore();
       }
     } catch (e) {
       console.warn("Firebase Init Error:", e);
     }
 
-    let currentAgentName = localStorage.getItem('agent_saved_name') || "";
-    let currentAgentPin = localStorage.getItem('agent_saved_pin') || "";
+    let currentAgentName = "";
+    let currentAgentEmail = "";
     let syncedCommissionRate = 0.15;
     let agentMaxLimit = 5000000;
     let agentUsedGross = 0;
     let calculatedTargetSession = "";
     let globalTicketStore = {};
     let posItemsMap = {};
-    let blockedNumbersSet = new Set(); // Sync from Admin settings
+    let blockedNumbersSet = new Set();
+    let isAppInitialized = false;
 
-    // PWA Manifest and Install prompt
-    let deferredPrompt = null;
-    (function injectManifest() {
-      const manifestData = {
-        name: "2D Agent Portal",
-        short_name: "2D Agent",
-        description: "2D ဒိုင်ခွဲ စာရင်းတင် အက်ပ်",
-        start_url: window.location.href,
-        display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#0f172a",
-        icons: [{
-          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%236366f1'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='220' fill='%23ffffff'%3E2D%3C/text%3E%3C/svg%3E",
-          sizes: "192x192 512x512",
-          type: "image/svg+xml",
-          purpose: "any maskable"
-        }]
-      };
-      const blob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-      const linkTag = document.createElement('link');
-      linkTag.rel = 'manifest';
-      linkTag.href = URL.createObjectURL(blob);
-      document.head.appendChild(linkTag);
-    })();
+    // =========================================================================
+    // FIREBASE AUTHENTICATION & AGENT IDENTITY + BLOCK CHECK
+    // =========================================================================
+    if (auth) {
+      auth.onAuthStateChanged(async (user) => {
+        const loginScreen = document.getElementById('loginScreen');
+        const mainScreen = document.getElementById('mainAppScreen');
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('pwaInstallBanner').style.display = 'block';
-    });
+        if (user) {
+          currentAgentEmail = user.email.trim().toLowerCase();
+          
+          try {
+            // Verify if this email is a registered Agent and not Blocked
+            const cfgDoc = await db.collection("settings").doc("agents_config").get();
+            let matchedAgent = null;
 
-    function triggerPwaInstall() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then((choiceResult) => {
-          if (choiceResult.outcome === 'accepted') {
-            showToast("ဖုန်း Screen ပေါ်သို့ App တင်ပြီးပါပြီ!", "success");
+            if (cfgDoc.exists && cfgDoc.data().list) {
+              const list = cfgDoc.data().list;
+              for (const [key, val] of Object.entries(list)) {
+                if (val.email && val.email.trim().toLowerCase() === currentAgentEmail) {
+                  matchedAgent = val;
+                  break;
+                }
+              }
+            }
+
+            if (!matchedAgent) {
+              await auth.signOut();
+              showToast("ခွင့်ပြုချက် မရှိပါ! ဤ Gmail သည် စာရင်းသွင်းထားသော Agent အကောင့် မဟုတ်ပါ!", "error");
+              loginScreen.style.display = 'block';
+              mainScreen.style.display = 'none';
+              return;
+            }
+
+            // Check if Agent is Blocked by Admin
+            if (matchedAgent.isBlocked === true) {
+              await auth.signOut();
+              showToast("သင့်အကောင့်အား ဒိုင်ချုပ်မှ ယာယီပိတ်ထားပါသည် (Blocked)!", "error");
+              loginScreen.style.display = 'block';
+              mainScreen.style.display = 'none';
+              return;
+            }
+
+            currentAgentName = matchedAgent.name;
+            document.getElementById('bannerAgentName').innerText = currentAgentName;
+            loginScreen.style.display = 'none';
+            mainScreen.style.display = 'block';
+
+            if (!isAppInitialized) {
+              initMainApp();
+              isAppInitialized = true;
+            }
+          } catch (err) {
+            console.error("Agent verification error:", err);
+            showToast("လုံခြုံရေး စစ်ဆေးမှု အမှား: " + err.message, "error");
           }
-          deferredPrompt = null;
-          dismissPwaBanner();
-        });
-      }
+        } else {
+          loginScreen.style.display = 'block';
+          mainScreen.style.display = 'none';
+          isAppInitialized = false;
+        }
+      });
     }
 
-    function dismissPwaBanner() {
-      document.getElementById('pwaInstallBanner').style.display = 'none';
-    }
+    async function handleAgentEmailLogin() {
+      const email = document.getElementById('loginAgentEmail').value.trim();
+      const password = document.getElementById('loginAgentPassword').value.trim();
+      const btn = document.getElementById('btnLoginAgent');
 
-    // DIRECT LOGIN
-    function handleAgentLogin() {
-      const nameInput = document.getElementById('loginAgentName').value.trim();
-      const pinInput = document.getElementById('loginPinInput').value.trim();
-
-      if (!nameInput || !pinInput) {
-        showToast("အမည်နှင့် PIN ဖြည့်စွက်ပါ!", "error");
+      if (!email || !password) {
+        showToast("Email နှင့် Password ပြည့်စုံစွာ ဖြည့်ပါ!", "error");
         return;
       }
 
-      const savedPin = localStorage.getItem('agent_pin_' + nameInput);
-      if (savedPin && savedPin !== pinInput) {
-        showToast("PIN နံပါတ် မှားယွင်းနေပါသည်!", "error");
+      btn.disabled = true;
+      btn.innerText = "ဝင်ရောက်နေပါသည်...";
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        showToast("ဒိုင်ခွဲ အကောင့်သို့ အောင်မြင်စွာ ဝင်ရောက်ပါပြီ!", "success");
+      } catch (error) {
+        console.error("Login Error:", error);
+        let msg = "Login အမှားဖြစ်ပေါ်ပါသည်: " + error.message;
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+          msg = "Email သို့မဟုတ် Password မှားယွင်းနေပါသည်!";
+        } else if (error.code === 'auth/invalid-email') {
+          msg = "Email ပုံစံ မမှန်ကန်ပါ!";
+        }
+        showToast(msg, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "အကောင့်ဝင်ရောက်မည် (Login)";
+      }
+    }
+
+    async function handleAgentLogout() {
+      try {
+        if (auth) await auth.signOut();
+        document.getElementById('loginAgentPassword').value = '';
+        showToast("အကောင့်မှ ထွက်ခွာပြီးပါပြီ!", "success");
+      } catch (e) {
+        showToast("Logout အမှား: " + e.message, "error");
+      }
+    }
+
+    // Agent Self Password Change Modal Logic
+    function openAgentPasswordChangeModal() {
+      document.getElementById('newAgentPassInput').value = '';
+      document.getElementById('confirmAgentPassInput').value = '';
+      document.getElementById('agentPasswordModal').style.display = 'flex';
+    }
+
+    function closeAgentPasswordChangeModal() {
+      document.getElementById('agentPasswordModal').style.display = 'none';
+    }
+
+    async function saveAgentPersonalPassword() {
+      const newPass = document.getElementById('newAgentPassInput').value.trim();
+      const confirmPass = document.getElementById('confirmAgentPassInput').value.trim();
+
+      if (!newPass || newPass.length < 6) {
+        showToast("Password သည် အနည်းဆုံး ၆ လုံး ရှိရပါမည်!", "error");
+        return;
+      }
+      if (newPass !== confirmPass) {
+        showToast("Password နှစ်ကြိမ် ရိုက်ထည့်မှု မတူညီပါ!", "error");
         return;
       }
 
-      currentAgentName = nameInput;
-      currentAgentPin = pinInput;
-      localStorage.setItem('agent_saved_name', nameInput);
-      localStorage.setItem('agent_pin_' + nameInput, pinInput);
+      const user = auth.currentUser;
+      if (!user) {
+        showToast("အကောင့်ဝင်ရောက်ထားခြင်း မရှိပါ!", "error");
+        return;
+      }
 
-      document.getElementById('bannerAgentName').innerText = currentAgentName;
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainAppScreen').style.display = 'block';
-
-      showToast("အကောင့်ဝင်ရောက်မှု အောင်မြင်ပါသည်!", "success");
-      initMainApp();
-    }
-
-    function handleLogout() {
-      document.getElementById('loginScreen').style.display = 'block';
-      document.getElementById('mainAppScreen').style.display = 'none';
+      try {
+        await user.updatePassword(newPass);
+        closeAgentPasswordChangeModal();
+        showToast("Password အောင်မြင်စွာ ပြောင်းလဲပြီးပါပြီ!", "success");
+      } catch (error) {
+        console.error("Password update error:", error);
+        if (error.code === 'auth/requires-recent-login') {
+          showToast("လုံခြုံရေးအရ Logout တစ်ကြိမ်လုပ်ပြီး ပြန်လည်ဝင်ရောက်ပေးပါ!", "error");
+        } else {
+          showToast("စကားဝှက်ပြောင်းရာတွင် အမှားဖြစ်ပေါ်ပါသည်: " + error.message, "error");
+        }
+      }
     }
 
     // =========================================================================
@@ -949,7 +1008,6 @@
       const keys = Object.keys(posItemsMap);
       if (!currentAgentName || keys.length === 0) return;
 
-      // Double-check blocked numbers before opening modal
       const hasBlocked = keys.some(num => blockedNumbersSet.has(num));
       if (hasBlocked) {
         showToast("တင်မည့် စာရင်းထဲတွင် ဒိုင်ချုပ် ပိတ်ထားသော ဂဏန်း ပါဝင်နေပါသည်!", "error");
@@ -1054,7 +1112,6 @@
       document.getElementById('historyMainModal').style.display = 'none';
     }
 
-    // View Details from History
     function openTicketDetailsById(ticketKey) {
       const t = globalTicketStore[ticketKey];
       if (!t) {
@@ -1089,12 +1146,20 @@
       updateCalculatedSession();
 
       if (db) {
-        // 1. Sync Agent Config (Commission & Credit Limit)
+        // 1. Sync Agent Config (Commission, Limit, and Real-time Block Check)
         db.collection("settings").doc("agents_config").onSnapshot((doc) => {
           if (doc.exists && doc.data().list) {
             const list = doc.data().list;
             if (list[currentAgentName]) {
               const myCfg = list[currentAgentName];
+
+              // Instant Kick-out if Admin Blocks this Agent while logged in
+              if (myCfg.isBlocked === true) {
+                auth.signOut();
+                showToast("သင့်အကောင့်အား ဒိုင်ချုပ်မှ ယာယီပိတ်ထားပါသည် (Blocked)!", "error");
+                return;
+              }
+
               syncedCommissionRate = parseFloat(myCfg.commission || 15) / 100;
               agentMaxLimit = parseFloat(myCfg.maxLimit || 5000000);
 
@@ -1220,17 +1285,6 @@
       t.className = 'toast show ' + (type || '');
       setTimeout(() => { t.className = 'toast'; }, 3500);
     }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedName = localStorage.getItem('agent_saved_name');
-      if (savedName) {
-        document.getElementById('loginAgentName').value = savedName;
-        const savedPin = localStorage.getItem('agent_pin_' + savedName);
-        if (savedPin) {
-          document.getElementById('loginPinInput').value = savedPin;
-        }
-      }
-    });
   </script>
 </body>
 </html>
