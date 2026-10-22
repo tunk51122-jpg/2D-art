@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="my" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2D ဒိုင်ခွဲ စာရင်းတင် စနစ် (Agent Portal)</title>
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="theme-color" content="#1e293b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="2D Agent">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #1e293b;
+      --surface-subtle: #0f172a;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #facc15;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Padauk', 'Inter', -apple-system, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 16px;
+    }
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .logo {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-subtle);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .btn {
+      padding: 11px 18px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .btn:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn:disabled { background: var(--border); cursor: not-allowed; opacity: 0.6; }
+    .btn-secondary {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+    .cat-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .cat-pill {
+      padding: 6px 12px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cat-pill:hover {
+      background: var(--border);
+      border-color: var(--primary);
+    }
+    .digit-btn {
+      padding: 6px 11px;
+      border-radius: 6px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .digit-btn:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .payment-box {
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid var(--success);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .pay-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .session-banner {
+      background: rgba(37,99,235,0.12);
+      border: 1px solid rgba(59,130,246,0.3);
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .session-tag {
+      background: var(--primary);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .items-grid-review {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 8px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .item-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .item-chip strong {
+      color: var(--primary);
+      font-size: 0.95rem;
+    }
+    
+    /* Install Shortcut Banner Design */
+    #pwaInstallBanner {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      max-width: 460px;
+      margin: 0 auto;
+      background: #1e293b;
+      border: 1px solid var(--primary);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      z-index: 10000;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      z-index: 2000;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+  </style>
+</head>
+<body>
+
+  <!-- PWA INSTALL SHORTCUT BANNER -->
+  <div id="pwaInstallBanner">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+      <div>
+        <strong style="color: var(--primary); font-size: 0.95rem; display: block;">📲 ဖုန်း Screen ပေါ်သို့ Shortcut တင်မည်</strong>
+        <span style="font-size: 0.78rem; color: var(--text-muted);">App ကဲ့သို့ ဖုန်းတွင် အမြဲထားရှိ အသုံးပြုနိုင်ပါသည်</span>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn" style="padding: 6px 14px; font-size: 0.85rem;" onclick="triggerPwaInstall()">Install</button>
+        <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="dismissPwaBanner()">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. LOGIN SCREEN -->
+  <div id="loginScreen" style="max-width: 440px; margin: 60px auto; padding: 0 16px;">
+    <div class="card" style="text-align: center;">
+      <h2 style="color: var(--primary); margin-bottom: 8px;">🔐 ဒိုင်ခွဲ အကောင့်ဝင်ရောက်ရန်</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+        Admin မှ သတ်မှတ်ပေးထားသော ဒိုင်ခွဲအမည်နှင့် PIN နံပါတ် ရိုက်ထည့်ပါ
+      </p>
+
+      <div style="margin-bottom: 16px; text-align: left;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">ဒိုင်ခွဲ အမည် (Agent Name):</label>
+        <input type="text" id="loginAgentName" placeholder="Admin သတ်မှတ်ပေးထားသည့် အမည် ရိုက်ပါ">
+      </div>
+
+      <div style="margin-bottom: 20px; text-align: left;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">လုံခြုံရေး PIN နံပါတ်:</label>
+        <input type="password" id="loginPinInput" placeholder="PIN နံပါတ် ရိုက်ပါ (ဥပမာ- 1111)" style="text-align: center; letter-spacing: 4px;">
+      </div>
+
+      <button type="button" class="btn" style="width: 100%; padding: 13px;" onclick="handleAgentLogin()">အကောင့်ဝင်ရောက်မည် (Login)</button>
+    </div>
+  </div>
+
+  <!-- 2. MAIN APP SCREEN -->
+  <div id="mainAppScreen" style="display: none; padding-bottom: 40px;">
+    <header>
+      <div class="header-inner">
+        <div class="logo">
+          <span>📝 2D Agent Portal</span>
+          <span class="badge">Firebase Live</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.8rem; color: var(--primary);" onclick="triggerPwaInstall()">📲 Shortcut တင်ရန်</button>
+          <span style="font-size: 0.95rem; font-weight: 700; color: var(--primary);" id="bannerAgentName">Agent</span>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.82rem;" onclick="handleLogout()">ထွက်မည်</button>
+        </div>
+      </div>
+    </header>
+
+    <main style="max-width: 960px; margin: 20px auto; padding: 0 16px;">
+      
+      <!-- Current Agent Status & Limits Card -->
+      <div class="card" style="padding: 14px 18px; margin-bottom: 16px; background: rgba(59,130,246,0.1); border-color: var(--primary);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: center;">
+          <div>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">ဒိုင်ခွဲ အမည်:</span>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--primary);" id="displayAgentTitle">Agent</div>
+          </div>
+          <div>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">ရရှိသော ကော်မရှင် %:</span>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);"><span id="agentCommPercent">15</span>%</div>
+          </div>
+          <div>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">ထိုးငွေ အများဆုံးကန့်သတ်ချက် (Limit):</span>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--warning);"><span id="agentMaxLimitDisp">5,000,000</span> Ks</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Payment Accounts Card (Synced from Admin) -->
+      <div class="payment-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="color: var(--success); font-size: 0.95rem;">💵 ဒိုင်ချုပ်ထံ ငွေလွှဲရမည့် အကောင့်များ (Live Updated):</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">တိုက်ရိုက်ချိတ်ဆက်ထားသည်</span>
+        </div>
+
+        <div class="pay-card">
+          <div>
+            <div style="font-weight: 700; color: #3b82f6;">🔵 KBZPay (KPay)</div>
+            <div style="font-size: 1.05rem; font-family: monospace; font-weight: 700;" id="dispKPayNumber">နံပါတ် သတ်မှတ်မထားပါ</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="dispKPayName">အမည်: -</div>
+          </div>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="copyNumber('dispKPayNumber')">📋 Copy</button>
+        </div>
+
+        <div class="pay-card">
+          <div>
+            <div style="font-weight: 700; color: #eab308;">🟡 Wave Money</div>
+            <div style="font-size: 1.05rem; font-family: monospace; font-weight: 700;" id="dispWaveNumber">နံပါတ် သတ်မှတ်မထားပါ</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="dispWaveName">အမည်: -</div>
+          </div>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="copyNumber('dispWaveNumber')">📋 Copy</button>
+        </div>
+      </div>
+
+      <!-- Smart Session Router Banner -->
+      <div class="session-banner">
+        <div>
+          <div style="font-size: 0.82rem; color: var(--text-muted);">🕒 သတ်မှတ်ပေးထားသော ထီထွက်ချိန် စက်ဝန်း:</div>
+          <div style="font-size: 1.05rem; font-weight: 700; margin-top: 2px;">
+            <span class="session-tag" id="autoSessionBadge">--</span>
+            <span id="sessionDetailText" style="margin-left: 8px; font-size: 0.88rem;"></span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <label style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">ကြိုထိုးရက် ရွေးမည်လား:</label>
+          <input type="date" id="customTargetDate" style="width: auto; padding: 6px 10px; font-size: 0.85rem;" onchange="updateCalculatedSession()">
+          <select id="customSessionChoice" style="width: auto; padding: 6px 10px; font-size: 0.85rem;" onchange="updateCalculatedSession()">
+            <option value="AUTO">အလိုအလျောက် (Auto)</option>
+            <option value="MORNING">မနက်ပိုင်း (12:01 PM)</option>
+            <option value="EVENING">ညနေပိုင်း (04:30 PM)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Main Bet Entry Card -->
+      <div class="card">
+        <h3 style="margin-bottom: 14px; font-size: 1.15rem;">စာရင်းရိုက်ထည့်ပြီး ဒိုင်ချုပ်ဆီ တင်ပို့ရန်</h3>
+
+        <!-- Category Selectors Assistant -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="font-size: 0.88rem; color: var(--primary);">⚡ အမြန်ရွေးချယ်စနစ် (Category Selectors):</strong>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">ထိုးငွေ:</span>
+              <input type="number" id="catAmountInput" value="500" step="100" style="width: 100px; padding: 4px 8px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div class="cat-btn-group">
+            <span class="cat-pill" onclick="appendCategory('အပူး')">💎 အပူး (၁၀ ကွက်)</span>
+            <span class="cat-pill" onclick="appendCategory('ပါဝါ')">⚡ ပါဝါ (၁၀ ကွက်)</span>
+            <span class="cat-pill" onclick="appendCategory('နက္ခတ်')">✨ နက္ခတ် (၁၀ ကွက်)</span>
+            <span class="cat-pill" onclick="appendCategory('ညီကို')">🤝 ညီကို (၂၀ ကွက်)</span>
+          </div>
+
+          <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+            <select id="catTypeSelect" style="width: auto; padding: 5px 10px; font-size: 0.85rem;">
+              <option value="ထိပ်">ထိပ် (Head)</option>
+              <option value="နောက်">နောက် (Tail)</option>
+              <option value="ပတ်">ပတ် (Any Position)</option>
+              <option value="ဘရိတ်">ဘရိတ် (Digit Sum)</option>
+            </select>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button type="button" class="digit-btn" onclick="appendDigitParam(0)">0</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(1)">1</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(2)">2</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(3)">3</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(4)">4</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(5)">5</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(6)">6</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(7)">7</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(8)">8</button>
+              <button type="button" class="digit-btn" onclick="appendDigitParam(9)">9</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Text Input Area -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; display: block;">
+            ထိုးမည့် အကွက်များ (စာရိုက်ထည့်ပါ သို့မဟုတ် အပေါ်မှ ရွေးပါ):
+          </label>
+          <textarea id="rawInput" rows="5" placeholder="ဥပမာ -&#10;12 14 - 1000&#10;25 အာ 500&#10;1 ထိပ် 500&#10;5 နောက် 500&#10;7 ဘရိတ် 1000&#10;အပူး 1000"></textarea>
+        </div>
+
+        <!-- KPay / Wave Money Slip Upload -->
+        <div style="background: rgba(34, 197, 94, 0.08); border: 1px dashed var(--success); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+          <label style="font-size: 0.88rem; font-weight: 700; color: var(--success); display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            💵 KPay / Wave ငွေလွှဲပြေစာ ပူးတွဲတင်ရန် (Slip Attachment Required):
+          </label>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">
+            ငွေလွှဲပြေစာ ဓာတ်ပုံ သို့မဟုတ် Screenshot ကို ရွေးချယ်ပေးပါ (ပြေစာမပါဘဲ စာရင်းတင်၍ မရပါ)
+          </p>
+          <input type="file" id="slipFileInput" accept="image/*" onchange="handleSlipSelected(event)" style="padding: 6px; font-size: 0.85rem;">
+          <div id="slipPreviewContainer" style="display: none; margin-top: 10px; align-items: center;">
+            <img id="slipPreviewImg" src="" alt="Slip Preview" style="max-height: 120px; border-radius: 6px; border: 1px solid var(--border);">
+            <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; margin-left: 10px;" onclick="removeSlip()">ဖယ်ထုတ်မည်</button>
+          </div>
+        </div>
+
+        <!-- Metrics Preview -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px;">
+          <div style="background: var(--surface-subtle); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">အကွက်ပေါင်း</span>
+            <div style="font-size: 1.25rem; font-weight: 700;" id="valCount">0</div>
+          </div>
+          <div style="background: var(--surface-subtle); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">စုစုပေါင်း ထိုးကြေး</span>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--primary);" id="valGross">0 Ks</div>
+          </div>
+          <div style="background: var(--surface-subtle); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">ဒိုင်ခွဲ ကော်မရှင် (<span id="valCommPercent">15</span>%)</span>
+            <div style="font-size: 1.25rem; font-weight: 700;" id="valComm">0 Ks</div>
+          </div>
+          <div style="background: var(--surface-subtle); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">ဒိုင်ချုပ်သို့ တင်မည့်ငွေ</span>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);" id="valNet">0 Ks</div>
+          </div>
+        </div>
+
+        <!-- Trigger Confirmation Review Button -->
+        <button type="button" class="btn" id="btnSubmit" style="width: 100%; padding: 14px; font-size: 1.05rem;" onclick="openReviewModal()" disabled>
+          🔍 စာရင်းစစ်ဆေးပြီး ဒိုင်ချုပ်ဆီသို့ တင်ပို့မည် (Review &amp; Submit)
+        </button>
+      </div>
+
+      <!-- Agent's Own Submitted History -->
+      <div class="card">
+        <h3 style="margin-bottom: 12px; font-size: 1.05rem;">📑 မိမိတင်ထားသော ဘောက်ချာမှတ်တမ်းများ (My Tickets)</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+            <thead>
+              <tr style="background: var(--surface-subtle); border-bottom: 1px solid var(--border);">
+                <th style="padding: 10px; text-align: left;">Ticket ID</th>
+                <th style="padding: 10px; text-align: left;">ထီထွက်ချိန် စက်ဝန်း</th>
+                <th style="padding: 10px; text-align: left;">အကွက်ပေါင်း</th>
+                <th style="padding: 10px; text-align: left;">ထိုးကြေး</th>
+                <th style="padding: 10px; text-align: left;">ဒိုင်တင်ငွေ</th>
+                <th style="padding: 10px; text-align: left;">KPay ပြေစာ</th>
+                <th style="padding: 10px; text-align: left;">ဂဏန်းစာရင်း (Details)</th>
+                <th style="padding: 10px; text-align: left;">တင်သွင်းချိန်</th>
+              </tr>
+            </thead>
+            <tbody id="agentTicketsBody">
+              <tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-muted);">လက်ရှိတွင် တင်ထားသော စာရင်းမရှိသေးပါ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 3. CONFIRMATION REVIEW MODAL -->
+  <div id="reviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 2000; padding: 16px;">
+    <div class="card" style="width: 100%; max-width: 500px; margin: 0; max-height: 90vh; display: flex; flex-direction: column;">
+      <h3 style="font-size: 1.15rem; color: var(--warning); margin-bottom: 6px;">🔍 တင်ပို့မည့် စာရင်းများကို သေချာစစ်ဆေးပါ</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+        မှားယွင်းမှု မရှိစေရန် အောက်ပါ အကွက်များနှင့် ငွေပမာဏများကို နောက်တစ်ကြိမ် အတည်ပြုပေးပါ
+      </p>
+
+      <div style="background: rgba(59,130,246,0.1); border: 1px solid var(--primary); border-radius: 8px; padding: 10px; font-size: 0.85rem; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span>ထီထွက်ချိန် စက်ဝန်း:</span>
+          <strong id="reviewSessionBadge" style="color: var(--primary);">--</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span>စုစုပေါင်း ထိုးကြေး:</span>
+          <strong id="reviewGrossText" style="color: var(--text); font-size: 1rem;">--</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>ဒိုင်ချုပ်သို့ တင်မည့်ငွေ (ကော်နုတ်ပြီး):</span>
+          <strong id="reviewNetText" style="color: var(--success); font-size: 1rem;">--</strong>
+        </div>
+      </div>
+
+      <label style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px;">တင်မည့် အကွက်များ စာရင်း (<span id="reviewItemCount">0</span> ကွက်):</label>
+      <div class="items-grid-review" id="reviewItemsListContainer"></div>
+
+      <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeReviewModal()">✏️ ပြန်ပြင်မည် (Cancel)</button>
+        <button type="button" class="btn" style="flex: 1.5; background: var(--success);" id="btnConfirmSubmit" onclick="submitAgentTicketConfirmed()">✅ အတည်ပြု တင်ပို့မည်</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TICKET DETAILS MODAL -->
+  <div id="historyDetailsModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 3000; padding: 16px;" onclick="closeHistoryDetailsModal()">
+    <div class="card" style="width: 100%; max-width: 500px; margin: 0; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="font-size: 1.1rem; color: var(--primary);" id="historyDetailTitle">📑 ဘောက်ချာ အသေးစိတ် အကွက်စာရင်း</h3>
+        <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="closeHistoryDetailsModal()">✕</button>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; background: var(--surface-subtle); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px;">
+        <div>အကွက်ပေါင်း: <strong id="histDetailCount">0</strong></div>
+        <div>စုစုပေါင်း: <strong id="histDetailGross" style="color:var(--primary);">0 Ks</strong></div>
+        <div>ဒိုင်တင်ငွေ: <strong id="histDetailNet" style="color:var(--success);">0 Ks</strong></div>
+      </div>
+
+      <label style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px;">ထိုးထားခဲ့သော အကွက်များနှင့် ငွေပမာဏများ:</label>
+      <div class="items-grid-review" id="histItemsGrid"></div>
+
+      <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 10px;" onclick="closeHistoryDetailsModal()">ပိတ်မည် (Close)</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1eGR_83Y19rWQjxbVFIdsBMPY54GapsI",
+      authDomain: "mster-one.firebaseapp.com",
+      projectId: "mster-one",
+      storageBucket: "mster-one.firebasestorage.app",
+      messagingSenderId: "779492694302",
+      appId: "1:779492694302:web:4c5e88f2aadaba4db4110f",
+      measurementId: "G-THL38LG590"
+    };
+
+    let db = null;
+    try {
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+      }
+    } catch (e) {
+      console.warn("Firebase Init Error:", e);
+    }
+
+    let currentAgentName = localStorage.getItem('agent_saved_name') || "";
+    let currentAgentPin = localStorage.getItem('agent_saved_pin') || "";
+    let currentItems = [];
+    let syncedCommissionRate = 0.15;
+    let agentMaxLimit = 5000000;
+    let calculatedTargetSession = "";
+    let attachedSlipBase64 = null;
+    let globalTicketStore = {};
+
+    // ==========================================
+    // PWA WEB APP SHORTCUT INSTALL ENGINE
+    // ==========================================
+    let deferredPrompt = null;
+
+    // Dynamically inject Web App Manifest into document head
+    (function injectManifest() {
+      const manifestData = {
+        name: "2D Agent Portal",
+        short_name: "2D Agent",
+        description: "2D ဒိုင်ခွဲ စာရင်းတင် အက်ပ်",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#0b1120",
+        theme_color: "#1e293b",
+        icons: [
+          {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%232563eb'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='220' fill='%23ffffff'%3E2D%3C/text%3E%3C/svg%3E",
+            sizes: "192x192 512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      const stringManifest = JSON.stringify(manifestData);
+      const blob = new Blob([stringManifest], { type: 'application/json' });
+      const manifestURL = URL.createObjectURL(blob);
+      const linkTag = document.createElement('link');
+      linkTag.rel = 'manifest';
+      linkTag.href = manifestURL;
+      document.head.appendChild(linkTag);
+    })();
+
+    // Listen for Android / Chrome install prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwaInstallBanner').style.display = 'block';
+    });
+
+    function triggerPwaInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            showToast("ဖုန်း Screen ပေါ်သို့ App တင်ပြီးပါပြီ!", "success");
+          }
+          deferredPrompt = null;
+          dismissPwaBanner();
+        });
+      } else {
+        // Alternative manual guide for Chrome on Android
+        alert("ဖုန်း Browser ညာဘက်အပေါ်ရှိ အစက် ၃ စက် (⋮) Menu ကို နှိပ်ပြီး 'Add to Home screen' (သို့မဟုတ်) 'Install App' ကို နှိပ်၍ Screen ပေါ် တင်နိုင်ပါသည်!");
+      }
+    }
+
+    function dismissPwaBanner() {
+      document.getElementById('pwaInstallBanner').style.display = 'none';
+    }
+
+    // DIRECT LOGIN HANDLER
+    function handleAgentLogin() {
+      const nameInput = document.getElementById('loginAgentName').value.trim();
+      const pinInput = document.getElementById('loginPinInput').value.trim();
+
+      if (!nameInput) {
+        showToast("ဒိုင်ခွဲ အမည် ရိုက်ထည့်ပေးပါ!", "error");
+        return;
+      }
+      if (!pinInput) {
+        showToast("PIN နံပါတ် ရိုက်ထည့်ပေးပါ!", "error");
+        return;
+      }
+
+      const savedPin = localStorage.getItem('agent_pin_' + nameInput);
+      if (savedPin && savedPin !== pinInput) {
+        showToast("PIN နံပါတ် မှားယွင်းနေပါသည်!", "error");
+        return;
+      }
+
+      currentAgentName = nameInput;
+      currentAgentPin = pinInput;
+      localStorage.setItem('agent_saved_name', nameInput);
+      localStorage.setItem('agent_pin_' + nameInput, pinInput);
+
+      document.getElementById('bannerAgentName').innerText = currentAgentName;
+      document.getElementById('displayAgentTitle').innerText = currentAgentName;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainAppScreen').style.display = 'block';
+
+      showToast("အကောင့်ဝင်ရောက်မှု အောင်မြင်ပါသည်!", "success");
+      initMainApp();
+    }
+
+    function handleLogout() {
+      document.getElementById('loginScreen').style.display = 'block';
+      document.getElementById('mainAppScreen').style.display = 'none';
+    }
+
+    function copyNumber(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      if (text.includes("သတ်မှတ်မထားပါ")) return;
+      navigator.clipboard.writeText(text);
+      showToast("နံပါတ် ကူးယူပြီးပါပြီ: " + text, "success");
+    }
+
+    function handleSlipSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = (h * maxDim) / w; w = maxDim; }
+            else { w = (w * maxDim) / h; h = maxDim; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          attachedSlipBase64 = canvas.toDataURL('image/jpeg', 0.65);
+
+          document.getElementById('slipPreviewImg').src = attachedSlipBase64;
+          document.getElementById('slipPreviewContainer').style.display = 'flex';
+          showToast("KPay / Wave ပြေစာ ဓာတ်ပုံ ထည့်သွင်းပြီးပါပြီ", "success");
+          checkSubmitReady();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeSlip() {
+      attachedSlipBase64 = null;
+      document.getElementById('slipFileInput').value = '';
+      document.getElementById('slipPreviewContainer').style.display = 'none';
+      checkSubmitReady();
+    }
+
+    function updateCalculatedSession() {
+      const customDateVal = document.getElementById('customTargetDate').value;
+      const customChoiceVal = document.getElementById('customSessionChoice').value;
+
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMin = now.getMinutes();
+      const totalSec = currentHour * 3600 + currentMin * 60 + now.getSeconds();
+
+      const morningCutoff = 12 * 3600;
+      const eveningCutoff = 16 * 3600 + 28 * 60;
+
+      let targetDate = new Date();
+      let sessionType = "MORNING";
+      let sessionLabel = "";
+
+      if (customDateVal) {
+        targetDate = new Date(customDateVal + "T00:00:00");
+        sessionType = customChoiceVal === "EVENING" ? "EVENING" : "MORNING";
+        sessionLabel = sessionType === "EVENING" ? "ညနေ (04:30 PM)" : "မနက် (12:01 PM)";
+      } else {
+        if (customChoiceVal === "MORNING") {
+          sessionType = "MORNING";
+          if (totalSec >= morningCutoff) {
+            targetDate.setDate(targetDate.getDate() + 1);
+            sessionLabel = "မနက်ဖြန် မနက် (12:01 PM) - ကြိုတင်စာရင်း";
+          } else {
+            sessionLabel = "ယနေ့ မနက် (12:01 PM)";
+          }
+        } else if (customChoiceVal === "EVENING") {
+          sessionType = "EVENING";
+          if (totalSec >= eveningCutoff) {
+            targetDate.setDate(targetDate.getDate() + 1);
+            sessionLabel = "မနက်ဖြန် ညနေ (04:30 PM) - ကြိုတင်စာရင်း";
+          } else {
+            sessionLabel = "ယနေ့ ညနေ (04:30 PM)";
+          }
+        } else {
+          if (totalSec < morningCutoff) {
+            sessionType = "MORNING";
+            sessionLabel = "ယနေ့ မနက် (12:01 PM)";
+          } else if (totalSec < eveningCutoff) {
+            sessionType = "EVENING";
+            sessionLabel = "ယနေ့ ညနေ (04:30 PM)";
+          } else {
+            targetDate.setDate(targetDate.getDate() + 1);
+            sessionType = "MORNING";
+            sessionLabel = "မနက်ဖြန် မနက် (12:01 PM) - နောက်နေ့စာရင်း";
+          }
+        }
+      }
+
+      const yyyy = targetDate.getFullYear();
+      const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(targetDate.getDate()).padStart(2, '0');
+      calculatedTargetSession = yyyy + "-" + mm + "-" + dd + "_" + sessionType;
+
+      document.getElementById('autoSessionBadge').innerText = yyyy + "-" + mm + "-" + dd + " (" + sessionType + ")";
+      document.getElementById('sessionDetailText').innerText = sessionLabel;
+    }
+
+    setInterval(updateCalculatedSession, 5000);
+
+    function appendCategory(cat) {
+      const amt = document.getElementById('catAmountInput').value || 500;
+      document.getElementById('rawInput').value += cat + " " + amt + "\n";
+      triggerParsing();
+    }
+
+    function appendDigitParam(digit) {
+      const type = document.getElementById('catTypeSelect').value;
+      const amt = document.getElementById('catAmountInput').value || 500;
+      document.getElementById('rawInput').value += digit + " " + type + " " + amt + "\n";
+      triggerParsing();
+    }
+
+    function parse2DText(text) {
+      if (!text) return [];
+      const lines = text.split(/[\n;]+/);
+      const items = [];
+
+      for (let rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        const matchTwins = line.match(/^(?:အပူး|double|doubles)[\s=-]+([0-9]+)$/i);
+        if (matchTwins) {
+          const amt = parseInt(matchTwins[1], 10);
+          for (let i = 0; i <= 9; i++) items.push({ number: "" + i + i, amount: amt });
+          continue;
+        }
+
+        const matchPower = line.match(/^(?:ပါဝါ|power)[\s=-]+([0-9]+)$/i);
+        if (matchPower) {
+          const amt = parseInt(matchPower[1], 10);
+          const pairs = ["05", "50", "16", "61", "27", "72", "38", "83", "49", "94"];
+          pairs.forEach(n => items.push({ number: n, amount: amt }));
+          continue;
+        }
+
+        const matchNakkhat = line.match(/^(?:နက္ခတ်|nakkhat)[\s=-]+([0-9]+)$/i);
+        if (matchNakkhat) {
+          const amt = parseInt(matchNakkhat[1], 10);
+          const pairs = ["07", "70", "18", "81", "24", "42", "35", "53", "69", "96"];
+          pairs.forEach(n => items.push({ number: n, amount: amt }));
+          continue;
+        }
+
+        const matchBro = line.match(/^(?:ညီကို|brother)[\s=-]+([0-9]+)$/i);
+        if (matchBro) {
+          const amt = parseInt(matchBro[1], 10);
+          const pairs = ["01", "10", "12", "21", "23", "32", "34", "43", "45", "54", "56", "65", "67", "76", "78", "87", "89", "98", "90", "09"];
+          pairs.forEach(n => items.push({ number: n, amount: amt }));
+          continue;
+        }
+
+        const matchBrake = line.match(/^([0-9])\s*(?:ဘရိတ်|brake|b)[\s=-]+([0-9]+)$/i);
+        if (matchBrake) {
+          const target = parseInt(matchBrake[1], 10);
+          const amt = parseInt(matchBrake[2], 10);
+          for (let i = 0; i <= 99; i++) {
+            const numStr = i < 10 ? ("0" + i) : ("" + i);
+            const sum = (parseInt(numStr[0], 10) + parseInt(numStr[1], 10)) % 10;
+            if (sum === target) items.push({ number: numStr, amount: amt });
+          }
+          continue;
+        }
+
+        const matchPant = line.match(/^([0-9])\s*(?:ပတ်|pant|p)[\s=-]+([0-9]+)$/i);
+        if (matchPant) {
+          const target = matchPant[1];
+          const amt = parseInt(matchPant[2], 10);
+          for (let i = 0; i <= 99; i++) {
+            const numStr = i < 10 ? ("0" + i) : ("" + i);
+            if (numStr[0] === target || numStr[1] === target) items.push({ number: numStr, amount: amt });
+          }
+          continue;
+        }
+
+        const matchHead = line.match(/^([0-9])\s*(?:ထိပ်|h|head)[\s=-]+([0-9]+)$/i);
+        if (matchHead) {
+          const head = matchHead[1];
+          const amt = parseInt(matchHead[2], 10);
+          for (let i = 0; i <= 9; i++) items.push({ number: "" + head + i, amount: amt });
+          continue;
+        }
+
+        const matchTail = line.match(/^([0-9])\s*(?:နောက်|အမြီး|t|tail)[\s=-]+([0-9]+)$/i);
+        if (matchTail) {
+          const tail = matchTail[1];
+          const amt = parseInt(matchTail[2], 10);
+          for (let i = 0; i <= 9; i++) items.push({ number: "" + i + tail, amount: amt });
+          continue;
+        }
+
+        const matchRev = line.match(/^([0-9]{2})\s*(?:အာ|r|rev)[\s=-]+([0-9]+)$/i);
+        if (matchRev) {
+          const num = matchRev[1];
+          const rev = num[1] + num[0];
+          const amt = parseInt(matchRev[2], 10);
+          items.push({ number: num, amount: amt });
+          if (num !== rev) items.push({ number: rev, amount: amt });
+          continue;
+        }
+
+        const matchDirect = line.match(/^([0-9\s,\/\.]+)[-=\s]+([0-9]+)$/);
+        if (matchDirect) {
+          const nums = matchDirect[1].split(/[,\s\/\.]+/).filter(Boolean);
+          const amt = parseInt(matchDirect[2], 10);
+          for (let n of nums) {
+            if (/^\d{2}$/.test(n)) items.push({ number: n, amount: amt });
+          }
+          continue;
+        }
+      }
+      return items;
+    }
+
+    function triggerParsing() {
+      const text = document.getElementById('rawInput').value;
+      currentItems = parse2DText(text);
+
+      const gross = currentItems.reduce((acc, c) => acc + c.amount, 0);
+      const comm = Math.round(gross * syncedCommissionRate);
+      const net = gross - comm;
+
+      document.getElementById('valCount').innerText = currentItems.length;
+      document.getElementById('valGross').innerText = gross.toLocaleString() + ' Ks';
+      document.getElementById('valComm').innerText = comm.toLocaleString() + ' Ks';
+      document.getElementById('valNet').innerText = net.toLocaleString() + ' Ks';
+
+      checkSubmitReady();
+    }
+
+    function checkSubmitReady() {
+      const gross = currentItems.reduce((acc, c) => acc + c.amount, 0);
+      const isOverLimit = gross > agentMaxLimit;
+      const hasSlip = !!attachedSlipBase64;
+      const hasItems = currentItems.length > 0;
+
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = (!hasItems || !hasSlip || isOverLimit);
+
+      if (isOverLimit) {
+        showToast("သတိပေးချက်- Admin သတ်မှတ်ထားသော ကန့်သတ်ငွေ " + agentMaxLimit.toLocaleString() + " Ks ထက် ကျော်လွန်နေပါသည်!", "error");
+      }
+    }
+
+    document.getElementById('rawInput').addEventListener('input', triggerParsing);
+
+    // =========================================================================
+    // 1. CONFIRMATION REVIEW MODAL
+    // =========================================================================
+    function openReviewModal() {
+      if (!currentAgentName || currentItems.length === 0) return;
+      if (!attachedSlipBase64) {
+        showToast("ငွေလွှဲပြေစာ ဓာတ်ပုံ ပူးတွဲတင်ပေးပါ!", "error");
+        return;
+      }
+
+      const gross = currentItems.reduce((acc, c) => acc + c.amount, 0);
+      if (gross > agentMaxLimit) {
+        showToast("ထိုးငွေပမာဏ ကန့်သတ်ချက်ထက် ကျော်လွန်နေပါသည်!", "error");
+        return;
+      }
+
+      const comm = Math.round(gross * syncedCommissionRate);
+      const net = gross - comm;
+
+      document.getElementById('reviewSessionBadge').innerText = calculatedTargetSession;
+      document.getElementById('reviewGrossText').innerText = gross.toLocaleString() + ' Ks';
+      document.getElementById('reviewNetText').innerText = net.toLocaleString() + ' Ks';
+      document.getElementById('reviewItemCount').innerText = currentItems.length;
+
+      const container = document.getElementById('reviewItemsListContainer');
+      let html = '';
+      currentItems.forEach(item => {
+        html += `<div class="item-chip"><span>ဂဏန်း: <strong>${item.number}</strong></span><span>${item.amount.toLocaleString()} Ks</span></div>`;
+      });
+      container.innerHTML = html;
+
+      document.getElementById('reviewModal').style.display = 'flex';
+    }
+
+    function closeReviewModal() {
+      document.getElementById('reviewModal').style.display = 'none';
+    }
+
+    async function submitAgentTicketConfirmed() {
+      closeReviewModal();
+
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerText = "ဆာဗာသို့ ပို့နေပါသည်...";
+
+      const gross = currentItems.reduce((acc, c) => acc + c.amount, 0);
+      const comm = Math.round(gross * syncedCommissionRate);
+      const net = gross - comm;
+      const now = new Date();
+      const clientTimeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
+      const ticketPayload = {
+        agentId: currentAgentName,
+        agentName: currentAgentName,
+        session: calculatedTargetSession,
+        itemCount: currentItems.length,
+        items: currentItems,
+        gross: gross,
+        commPercent: (syncedCommissionRate * 100),
+        comm: comm,
+        net: net,
+        slipImage: attachedSlipBase64,
+        clientTime: clientTimeStr,
+        createdAt: now.getTime()
+      };
+
+      try {
+        if (db) {
+          ticketPayload.serverTime = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection("tickets").add(ticketPayload);
+          showToast("ဒိုင်ချုပ်ဆီသို့ အောင်မြင်စွာ ရောက်ရှိသွားပါပြီ!", "success");
+        } else {
+          throw new Error("No database connection");
+        }
+        document.getElementById('rawInput').value = '';
+        removeSlip();
+        currentItems = [];
+        triggerParsing();
+      } catch (err) {
+        console.warn("Firebase commit error:", err);
+        const offlineQueue = JSON.parse(localStorage.getItem('myanmar_2d_offline_tickets') || '[]');
+        offlineQueue.push(ticketPayload);
+        localStorage.setItem('myanmar_2d_offline_tickets', JSON.stringify(offlineQueue));
+
+        showToast("ဆာဗာ Rules Error! စာရင်းကို အော့ဖ်လိုင်း မှတ်သားထားပြီးပါပြီ။", "success");
+        document.getElementById('rawInput').value = '';
+        removeSlip();
+        currentItems = [];
+        triggerParsing();
+        renderLocalTickets();
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "🔍 စာရင်းစစ်ဆေးပြီး ဒိုင်ချုပ်ဆီသို့ တင်ပို့မည် (Review & Submit)";
+      }
+    }
+
+    // =========================================================================
+    // 2. VIEW SUBMITTED NUMBERS DETAILS FROM HISTORY
+    // =========================================================================
+    function openTicketDetailsById(ticketKey) {
+      const t = globalTicketStore[ticketKey];
+      if (!t) {
+        showToast("ဘောက်ချာ အချက်အလက် မတွေ့ရှိပါ!", "error");
+        return;
+      }
+
+      document.getElementById('historyDetailTitle').innerText = `📑 ဘောက်ချာ #${t.displayId} (${t.agentName || ''})`;
+      document.getElementById('histDetailCount').innerText = `${t.itemCount || (t.items ? t.items.length : 0)} ကွက်`;
+      document.getElementById('histDetailGross').innerText = `${(t.gross || 0).toLocaleString()} Ks`;
+      document.getElementById('histDetailNet').innerText = `${(t.net || 0).toLocaleString()} Ks`;
+
+      const grid = document.getElementById('histItemsGrid');
+      let html = '';
+      if (t.items && Array.isArray(t.items) && t.items.length > 0) {
+        t.items.forEach(it => {
+          html += `<div class="item-chip"><span>ဂဏန်း: <strong>${it.number}</strong></span><span>${(it.amount || 0).toLocaleString()} Ks</span></div>`;
+        });
+      } else {
+        html = '<div style="grid-column: 1/-1; text-align:center; padding:16px; color:var(--text-muted);">အကွက်စာရင်း မရှိပါ</div>';
+      }
+      grid.innerHTML = html;
+
+      const modal = document.getElementById('historyDetailsModal');
+      modal.style.display = 'flex';
+    }
+
+    function closeHistoryDetailsModal() {
+      document.getElementById('historyDetailsModal').style.display = 'none';
+    }
+
+    function initMainApp() {
+      updateCalculatedSession();
+
+      if (db) {
+        // Sync Agent Config (Commission & Limit)
+        db.collection("settings").doc("agents_config").onSnapshot((doc) => {
+          if (doc.exists && doc.data().list) {
+            const list = doc.data().list;
+            if (list[currentAgentName]) {
+              const myCfg = list[currentAgentName];
+              syncedCommissionRate = parseFloat(myCfg.commission || 15) / 100;
+              agentMaxLimit = parseFloat(myCfg.maxLimit || 5000000);
+
+              document.getElementById('agentCommPercent').innerText = (syncedCommissionRate * 100).toFixed(0);
+              document.getElementById('valCommPercent').innerText = (syncedCommissionRate * 100).toFixed(0);
+              document.getElementById('agentMaxLimitDisp').innerText = agentMaxLimit.toLocaleString();
+              triggerParsing();
+            }
+          }
+        });
+
+        // Sync Payment Accounts
+        db.collection("settings").doc("payments").onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            document.getElementById('dispKPayNumber').innerText = data.kpayNumber || "သတ်မှတ်မထားပါ";
+            document.getElementById('dispKPayName').innerText = "အမည်: " + (data.kpayName || "-");
+            document.getElementById('dispWaveNumber').innerText = data.waveNumber || "သတ်မှတ်မထားပါ";
+            document.getElementById('dispWaveName').innerText = "အမည်: " + (data.waveName || "-");
+          }
+        });
+
+        // FIXED QUERY: In-memory sorting eliminates Firebase Composite Index requirement
+        db.collection("tickets")
+          .where("agentName", "==", currentAgentName)
+          .onSnapshot((snapshot) => {
+            const tbody = document.getElementById('agentTicketsBody');
+            if (snapshot.empty) {
+              renderLocalTickets();
+              return;
+            }
+            
+            const rawDocs = [];
+            snapshot.forEach(doc => {
+              const d = doc.data();
+              d._id = doc.id;
+              rawDocs.push(d);
+            });
+
+            rawDocs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            globalTicketStore = {};
+            let html = '';
+            rawDocs.forEach(t => {
+              const docId = t._id;
+              t.displayId = docId.substring(0, 8);
+              globalTicketStore[docId] = t;
+
+              const slipBtn = t.slipImage 
+                ? `<button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; color:var(--success);" onclick="previewSlipPopup('${t.slipImage}')">🖼️ ပြေစာ</button>`
+                : `<span style="color:var(--text-muted); font-size:0.75rem;">မပါ</span>`;
+
+              const detailBtn = `<button type="button" class="btn" style="padding: 5px 12px; font-size: 0.8rem; background: var(--primary);" onclick="openTicketDetailsById('${docId}')">📋 ဂဏန်းစာရင်း</button>`;
+
+              html += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 10px; font-family: monospace; color: var(--primary); font-weight: 700;">${t.displayId}</td>
+                  <td style="padding: 10px;"><span class="badge" style="background:rgba(59,130,246,0.15); color:var(--primary); border:none;">${t.session || '-'}</span></td>
+                  <td style="padding: 10px;">${t.itemCount || 0}</td>
+                  <td style="padding: 10px; font-weight: 600;">${(t.gross || 0).toLocaleString()} Ks</td>
+                  <td style="padding: 10px; color: var(--success); font-weight: 700;">${(t.net || 0).toLocaleString()} Ks</td>
+                  <td style="padding: 10px;">${slipBtn}</td>
+                  <td style="padding: 10px;">${detailBtn}</td>
+                  <td style="padding: 10px; font-size: 0.8rem; color: var(--text-muted);">${t.clientTime || '-'}</td>
+                </tr>
+              `;
+            });
+            tbody.innerHTML = html;
+          }, (err) => {
+            console.warn("Tickets fallback:", err);
+            renderLocalTickets();
+          });
+      } else {
+        renderLocalTickets();
+      }
+    }
+
+    function renderLocalTickets() {
+      const offlineQueue = JSON.parse(localStorage.getItem('myanmar_2d_offline_tickets') || '[]');
+      const filtered = offlineQueue.filter(t => t.agentName === currentAgentName);
+      const tbody = document.getElementById('agentTicketsBody');
+      if (filtered.length === 0) return;
+
+      globalTicketStore = {};
+      let html = '';
+      filtered.slice().reverse().forEach((t, idx) => {
+        const offId = 'OFF_' + idx;
+        t.displayId = 'TK-' + (idx + 1);
+        globalTicketStore[offId] = t;
+
+        const slipBtn = t.slipImage 
+          ? `<button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; color:var(--success);" onclick="previewSlipPopup('${t.slipImage}')">🖼️ ပြေစာ</button>`
+          : `<span style="color:var(--text-muted); font-size:0.75rem;">မပါ</span>`;
+
+        const detailBtn = `<button type="button" class="btn" style="padding: 5px 12px; font-size: 0.8rem; background: var(--primary);" onclick="openTicketDetailsById('${offId}')">📋 ဂဏန်းစာရင်း</button>`;
+
+        html += `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px; font-family: monospace; color: var(--warning); font-weight: 700;">${t.displayId}</td>
+            <td style="padding: 10px;"><span class="badge" style="background:rgba(234,179,8,0.15); color:var(--warning); border:none;">${t.session || '-'}</span></td>
+            <td style="padding: 10px;">${t.itemCount || 0}</td>
+            <td style="padding: 10px; font-weight: 600;">${(t.gross || 0).toLocaleString()} Ks</td>
+            <td style="padding: 10px; color: var(--success); font-weight: 700;">${(t.net || 0).toLocaleString()} Ks</td>
+            <td style="padding: 10px;">${slipBtn}</td>
+            <td style="padding: 10px;">${detailBtn}</td>
+            <td style="padding: 10px; font-size: 0.8rem; color: var(--text-muted);">${t.clientTime || '-'}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function previewSlipPopup(src) {
+      let pop = document.getElementById('slipPopupOverlay');
+      if (!pop) {
+        pop = document.createElement('div');
+        pop.id = 'slipPopupOverlay';
+        pop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:4000;cursor:pointer;';
+        pop.onclick = () => pop.style.display = 'none';
+        pop.innerHTML = '<img id="slipPopupImg" style="max-width:90%;max-height:85vh;border-radius:8px;border:2px solid #fff;">';
+        document.body.appendChild(pop);
+      }
+      document.getElementById('slipPopupImg').src = src;
+      pop.style.display = 'flex';
+    }
+
+    function showToast(msg, type) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.className = 'toast show ' + (type || '');
+      setTimeout(() => { t.className = 'toast'; }, 3500);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedName = localStorage.getItem('agent_saved_name');
+      if (savedName) {
+        document.getElementById('loginAgentName').value = savedName;
+        const savedPin = localStorage.getItem('agent_pin_' + savedName);
+        if (savedPin) {
+          document.getElementById('loginPinInput').value = savedPin;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
