@@ -585,8 +585,16 @@
 
   <div class="app-container">
 
+        <!-- Checking Authentication Screen (Smooth splash to prevent login flash) -->
+    <div id="authCheckingScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center;">
+      <div style="font-size: 2.2rem; color: var(--primary); margin-bottom: 12px;">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">အကောင့် အခြေအနေ စစ်ဆေးနေပါသည်...</p>
+    </div>
+
     <!-- 1. LOGIN SCREEN: GMAIL & PASSWORD AUTHENTICATION (STRICTLY UNTOUCHED LOGIC) -->
-    <div id="loginScreen" style="max-width: 440px; margin: auto; padding: 20px 16px; width: 100%;">
+    <div id="loginScreen" style="display: none; max-width: 440px; margin: auto; padding: 20px 16px; width: 100%;">
       <div class="panel" style="text-align: center; box-shadow: var(--shadow-md);">
         <div style="margin-bottom: 12px; color: var(--primary); font-size: 2.2rem;">
           <i class="fas fa-lock"></i>
@@ -1232,6 +1240,7 @@
           firebase.initializeApp(firebaseConfig);
         }
         auth = firebase.auth();
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e => console.warn("Persistence error:", e));
         db = firebase.firestore();
       }
     } catch (e) {
@@ -1254,6 +1263,9 @@
     // =========================================================================
     if (auth) {
       auth.onAuthStateChanged(async (user) => {
+        const checkingScreen = document.getElementById('authCheckingScreen');
+        if (checkingScreen) checkingScreen.style.display = 'none';
+
         const loginScreen = document.getElementById('loginScreen');
         const mainScreen = document.getElementById('mainAppScreen');
 
@@ -1275,8 +1287,17 @@
               }
             }
 
+            // Fallback to cache if network momentarily slow
             if (!matchedAgent) {
-              await auth.signOut();
+              const cachedName = localStorage.getItem('myanmar_2d_cached_agent_name');
+              const cachedEmail = localStorage.getItem('myanmar_2d_cached_agent_email');
+              if (cachedName && cachedEmail === currentAgentEmail) {
+                matchedAgent = { name: cachedName, email: cachedEmail };
+              }
+            }
+
+            if (!matchedAgent) {
+              // Do NOT call auth.signOut() automatically to avoid destroying the session
               showToast("ခွင့်ပြုချက် မရှိပါ! ဤ Gmail သည် စာရင်းသွင်းထားသော Agent အကောင့် မဟုတ်ပါ!", "error");
               loginScreen.style.display = 'block';
               mainScreen.style.display = 'none';
@@ -1285,7 +1306,6 @@
 
             // Check if Agent is Blocked by Admin
             if (matchedAgent.isBlocked === true) {
-              await auth.signOut();
               showToast("သင့်အကောင့်အား ဒိုင်ချုပ်မှ ယာယီပိတ်ထားပါသည် (Blocked)!", "error");
               loginScreen.style.display = 'block';
               mainScreen.style.display = 'none';
@@ -1293,6 +1313,11 @@
             }
 
             currentAgentName = matchedAgent.name;
+            try {
+              localStorage.setItem('myanmar_2d_cached_agent_name', currentAgentName);
+              localStorage.setItem('myanmar_2d_cached_agent_email', currentAgentEmail);
+            } catch (e) {}
+
             document.getElementById('bannerAgentName').innerText = currentAgentName;
             const sideName = document.getElementById('sideAgentName');
             if (sideName) sideName.innerText = currentAgentName;
@@ -1306,7 +1331,24 @@
             }
           } catch (err) {
             console.error("Agent verification error:", err);
-            showToast("လုံခြုံရေး စစ်ဆေးမှု အမှား: " + err.message, "error");
+            const cachedName = localStorage.getItem('myanmar_2d_cached_agent_name');
+            const cachedEmail = localStorage.getItem('myanmar_2d_cached_agent_email');
+            if (cachedName && cachedEmail === currentAgentEmail) {
+              currentAgentName = cachedName;
+              document.getElementById('bannerAgentName').innerText = currentAgentName;
+              const sideName = document.getElementById('sideAgentName');
+              if (sideName) sideName.innerText = currentAgentName;
+              loginScreen.style.display = 'none';
+              mainScreen.style.display = 'flex';
+              if (!isAppInitialized) {
+                initMainApp();
+                isAppInitialized = true;
+              }
+            } else {
+              showToast("လုံခြုံရေး စစ်ဆေးမှု အမှား: " + err.message, "error");
+              loginScreen.style.display = 'block';
+              mainScreen.style.display = 'none';
+            }
           }
         } else {
           loginScreen.style.display = 'block';
@@ -1349,6 +1391,10 @@
 
     async function handleAgentLogout() {
       try {
+        try {
+          localStorage.removeItem('myanmar_2d_cached_agent_name');
+          localStorage.removeItem('myanmar_2d_cached_agent_email');
+        } catch (e) {}
         if (auth) await auth.signOut();
         document.getElementById('loginAgentPassword').value = '';
         showToast("အကောင့်မှ ထွက်ခွာပြီးပါပြီ!", "success");
