@@ -733,6 +733,7 @@
                 <!-- Formula Quick Pills -->
                 <div class="formula-pills">
                   <span class="f-pill r-pill" onclick="appendInputFormula('R')">🔄 R (အာ)</span>
+                  <span class="f-pill" style="border-color: var(--primary); color: var(--primary); font-weight:700;" onclick="appendInputFormula('pass')">🎯 Pass (ပတ်)</span>
                   <span class="f-pill" onclick="appendInputFormula('အပူး')">💎 အပူး</span>
                   <span class="f-pill" onclick="appendInputFormula('ပါဝါ')">⚡ ပါဝါ</span>
                   <span class="f-pill" onclick="appendInputFormula('နက္ခတ်')">✨ နက္ခတ်</span>
@@ -746,7 +747,7 @@
                   <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 140px;">
                       <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">ထိုးမည့် ဂဏန်း / ဖော်မြူလာ:</label>
-                      <input type="text" id="posNumInput" placeholder="ဥပမာ- 12 R သို့မဟုတ် 1ထိပ်" style="font-size: 1.2rem; font-weight: 700; text-align: center;">
+                      <input type="text" id="posNumInput" placeholder="ဥပမာ- 12 R, 1 pass သို့မဟုတ် 1ထိပ်" style="font-size: 1.2rem; font-weight: 700; text-align: center;">
                     </div>
                     <div style="flex: 1; min-width: 140px;">
                       <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">ထိုးငွေပမာဏ (Ks):</label>
@@ -1458,9 +1459,17 @@
       const input = document.getElementById('posNumInput');
       if (str === 'R') {
         input.value = input.value.trim() + ' R';
+      } else if (str === 'pass') {
+        const val = input.value.trim();
+        if (/^[0-9၀-၉]$/.test(val)) {
+          input.value = val + ' pass';
+        } else {
+          input.value = val ? (val + ' pass') : 'pass';
+        }
       } else {
         input.value = str;
       }
+      input.focus();
     }
 
     function parsePosText(text, defaultAmt) {
@@ -1512,6 +1521,24 @@
             const sum = (parseInt(numStr[0], 10) + parseInt(numStr[1], 10)) % 10;
             if (sum === target) items.push({ number: numStr, amount: amt });
           }
+          continue;
+        }
+
+        // Match Pass / ပတ် / ပတ်သီး (e.g. 1 pass, 1pass, 1ပတ်, 1ပတ်သီး, 1p, ၁ pass) -> 19 numbers
+        const matchPass = line.match(/^([0-9၀-၉])\s*(?:pass|p|ပတ်|ပတ်သီး)(?:\s*[-=]?\s*([0-9၀-၉]+))?$/i);
+        if (matchPass) {
+          const burm = {'၀':'0','၁':'1','၂':'2','၃':'3','၄':'4','၅':'5','၆':'6','၇':'7','၈':'8','၉':'9'};
+          let digit = matchPass[1];
+          if (burm[digit] !== undefined) digit = burm[digit];
+          let rawAmt = matchPass[2] || defaultAmt;
+          let amt = parseInt(String(rawAmt).replace(/[၀-၉]/g, d => burm[d] || d), 10) || defaultAmt;
+
+          const passSet = new Set();
+          for (let i = 0; i <= 9; i++) {
+            passSet.add("" + digit + i); // head
+            passSet.add("" + i + digit); // tail
+          }
+          Array.from(passSet).sort().forEach(n => items.push({ number: n, amount: amt }));
           continue;
         }
 
