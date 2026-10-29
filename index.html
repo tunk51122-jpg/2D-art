@@ -5,6 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>2D ဒိုင်ခွဲ စာရင်းတင် စနစ် (Agent Portal)</title>
   
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Early PWA Capture & Service Worker Registration -->
+  <script>
+    window.deferredPrompt = null;
+    window.isPWAInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+      console.log('PWA: beforeinstallprompt captured');
+      if (window.isWaitingForPWAInstall && typeof window.executePWAInstall === 'function') {
+        window.executePWAInstall();
+      } else if (typeof window.checkAndShowBanner === 'function') {
+        window.checkAndShowBanner();
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      window.deferredPrompt = null;
+      window.isPWAInstalled = true;
+      window.isWaitingForPWAInstall = false;
+      if (typeof window.showToast === 'function') {
+        window.showToast("2D Agent အား Home Screen တွင် အောင်မြင်စွာ သွင်းယူပြီးပါပြီ!");
+      }
+      if (typeof window.checkAndShowBanner === 'function') {
+        window.checkAndShowBanner();
+      }
+      const b = document.getElementById('pwa-auto-banner');
+      if (b) b.style.display = 'none';
+      const m = document.getElementById('pwa-guide-modal');
+      if (m) m.style.display = 'none';
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then(reg => {
+            console.log('PWA ServiceWorker active');
+            reg.update();
+          })
+          .catch(err => console.warn('PWA ServiceWorker error:', err));
+      });
+    }
+  </script>
   <!-- PWA & Mobile Web App Meta Tags -->
   <meta name="theme-color" content="#3b82f6">
   <meta name="mobile-web-app-capable" content="yes">
@@ -837,6 +885,21 @@
                   </button>
                 </div>
 
+                                <!-- Install App Card -->
+                <div style="background: var(--panel-subtle); border: 2px solid var(--primary); border-radius: 12px; padding: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 44px; height: 44px; border-radius: 10px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                      <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div>
+                      <h4 style="font-size: 0.95rem; font-weight: 700;">Install Application</h4>
+                      <p style="font-size: 0.75rem; color: var(--text-muted);">Home Screen တွင် App အဖြစ် သွင်းယူအသုံးပြုရန်</p>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-primary" onclick="triggerPWAInstall()">
+                    <i class="fas fa-download"></i> <span>Install Now</span>
+                  </button>
+                </div>
                 <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--primary); border-top: 1px solid var(--border-color); padding-top: 16px;">
                   <i class="fas fa-user-shield"></i> အကောင့် လုံခြုံရေး
                 </h3>
@@ -964,6 +1027,50 @@
       </div>
     </div>
 
+      <!-- Auto Slide-up PWA 1-Click Install Banner -->
+  <div id="pwa-auto-banner" style="display: none; position: fixed; bottom: 74px; left: 12px; right: 12px; max-width: 420px; margin: 0 auto; background: var(--panel-bg); border: 2px solid var(--primary); border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); z-index: 4500; align-items: center; justify-content: space-between; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+        <i class="fas fa-receipt"></i>
+      </div>
+      <div>
+        <h4 style="font-size: 0.88rem; font-weight: 700; line-height: 1.2;">2D Agent Portal</h4>
+        <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Home Screen ပေါ်သို့ App အဖြစ် သွင်းယူမည်</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 0.8rem; min-height: 32px;" onclick="triggerPWAInstall()">
+        <i class="fas fa-download"></i> <span>Install</span>
+      </button>
+      <button type="button" style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px;" onclick="dismissInstallBanner()" title="ပိတ်မည်">✕</button>
+    </div>
+  </div>
+
+  <!-- Fallback PWA Step-by-Step Install Guide Modal -->
+  <div id="pwa-guide-modal" class="modal-backdrop" style="z-index: 5000;">
+    <div class="panel" style="width: 90%; max-width: 380px; margin: 0; text-align: center;">
+      <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 10px;">
+        <i class="fas fa-mobile-alt"></i>
+      </div>
+      <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 6px;">Home Screen သို့ App သွင်းနည်း</h3>
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">Google Chrome မှတစ်ဆင့် အောက်ပါအတိုင်း သွင်းယူနိုင်ပါသည်:</p>
+
+      <div style="text-align: left; font-size: 0.8rem; background: var(--panel-subtle); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 14px; line-height: 1.6;">
+        <div style="margin-bottom: 8px;">
+          <strong>၁။</strong> Chrome ၏ ညာဘက်အပေါ်ထောင့်ရှိ <span style="color: var(--primary); font-weight: 700;">အစက် ၃ စက် (⋮)</span> ကို နှိပ်ပါ။
+        </div>
+        <div style="margin-bottom: 8px;">
+          <strong>၂။</strong> <span style="color: var(--primary); font-weight: 700;">"Install app"</span> သို့မဟုတ် <span style="color: var(--primary); font-weight: 700;">"Add to Home screen"</span> ကို ရွေးပါ။
+        </div>
+        <div>
+          <strong>၃။</strong> ပေါ်လာသော Dialog တွင် <span style="color: var(--primary); font-weight: 700;">"Install"</span> ကို နှိပ်လိုက်ပါက ဖုန်းမျက်နှာပြင်ပေါ်သို့ တိုက်ရိုက်ရောက်သွားပါမည်!
+        </div>
+      </div>
+
+      <button type="button" class="btn-primary" style="width: 100%;" onclick="closePWAGuideModal()">နားလည်ပါပြီ (OK)</button>
+    </div>
+  </div>
+
     <div id="toast" class="toast"></div>
 
   </div>
@@ -1004,6 +1111,103 @@
       const mobBtn = document.getElementById('mobTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
       if (mobBtn) mobBtn.classList.add('active');
     }
+
+    
+    // =========================================================================
+    // PWA DIRECT 1-CLICK INSTALLATION SYSTEM
+    // =========================================================================
+    function isAppInstalled() {
+      return window.isPWAInstalled ||
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+    }
+
+    function checkAndShowBanner() {
+      if (isAppInstalled()) {
+        const b = document.getElementById('pwa-auto-banner');
+        if (b) b.style.display = 'none';
+        return;
+      }
+      try {
+        if (sessionStorage.getItem('pwa_banner_dismissed_2d')) return;
+      } catch (e) {}
+
+      setTimeout(() => {
+        if (!isAppInstalled()) {
+          const b = document.getElementById('pwa-auto-banner');
+          if (b) b.style.display = 'flex';
+        }
+      }, 1200);
+    }
+
+    function dismissInstallBanner() {
+      const b = document.getElementById('pwa-auto-banner');
+      if (b) b.style.display = 'none';
+      try {
+        sessionStorage.setItem('pwa_banner_dismissed_2d', 'true');
+      } catch (e) {}
+    }
+
+    function openPWAGuideModal() {
+      const m = document.getElementById('pwa-guide-modal');
+      if (m) m.style.display = 'flex';
+    }
+
+    function closePWAGuideModal() {
+      const m = document.getElementById('pwa-guide-modal');
+      if (m) m.style.display = 'none';
+    }
+
+    async function executePWAInstall() {
+      const promptEvent = window.deferredPrompt;
+      if (!promptEvent) {
+        openPWAGuideModal();
+        return false;
+      }
+      window.isWaitingForPWAInstall = false;
+      try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          showToast("ဖုန်းထဲသို့ Application အဖြစ် တိုက်ရိုက် သွင်းယူနေပါသည်...", "success");
+          window.deferredPrompt = null;
+          dismissInstallBanner();
+        } else {
+          showToast("Install ပြုလုပ်ခြင်းကို ပယ်ဖျက်လိုက်ပါသည်", "error");
+        }
+        return true;
+      } catch (err) {
+        console.warn('Install prompt error:', err);
+        openPWAGuideModal();
+        return false;
+      }
+    }
+
+    async function triggerPWAInstall() {
+      if (isAppInstalled()) {
+        showToast("App အား သွင်းယူထားပြီး ဖြစ်ပါသည်ခင်ဗျာ!", "success");
+        return;
+      }
+      if (window.deferredPrompt) {
+        await executePWAInstall();
+        return;
+      }
+      window.isWaitingForPWAInstall = true;
+      let count = 0;
+      const checker = setInterval(async () => {
+        count++;
+        if (window.deferredPrompt) {
+          clearInterval(checker);
+          await executePWAInstall();
+        } else if (count >= 3) {
+          clearInterval(checker);
+          window.isWaitingForPWAInstall = false;
+          openPWAGuideModal();
+        }
+      }, 400);
+    }
+
+    window.addEventListener('DOMContentLoaded', checkAndShowBanner);
 
     initTheme();
 
